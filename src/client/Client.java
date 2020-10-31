@@ -3,13 +3,11 @@ package client;
 import java.net.*;
 import java.util.Formatter;
 import java.util.Scanner;
+
+import model.DHCPPacket;
+
 import java.io.*;
 
-// Name       : Mohamed Daniel Bin Mohamed Izham
-// QUID       : 201802738
-// Course     : CMPS 405 - Operating Systems
-// Assessment : Homework 2
-// Instructor : Mohammad Saleh Mustafa Saleh
 
 public class Client {
 	Socket server;
@@ -17,64 +15,55 @@ public class Client {
 	Formatter toNet = null;
 	Scanner fromNet = null;
 	Scanner fromUser = new Scanner(System.in);
-	int MAX_ATTEMPTS = 3;
+	final String DHCP_DISCOVER = "DHCP DISCOVER";
+	final String DHCP_REQUEST = "DHCP REQUEST";
+	final String DHCP_ACK = "DHCP ACK";
+
+	
 
 	public Client() {
 		try {
-			String response = login();
-			int attemptsRemaining = MAX_ATTEMPTS - 1;
-			while (response.equals("invalid") && attemptsRemaining > 0) {
-				System.out.printf("Invalid login. Please re-enter your credentials. Attempts remaining: %d%n%n",
-						attemptsRemaining--);
-
-				response = login();
-			}
-
-			// if login is successful, vote at local host port 4001
-			if (response.equals("valid")) {
-				server = new Socket("localhost", 4001);
-				toNet = new Formatter(server.getOutputStream());
-
-				System.out.print("Enter a number that you want to vote for [0-9]: ");
-				String vote = fromUser.nextLine();
-				toNet.format("%s\n", vote);
-				toNet.flush();
-				System.out.println("Thank you for participating in the voting process. Goodbye...");
-			} else {
-				System.out.println("You have reached the maximum number of attempts. "
-						+ "Please contact your local administration to resolve the issue.");
-				System.out.println("Thank you for using our service.");
-			}
-
-		} catch (IOException ioe) {
-			System.out.println(ioe);
-		}
-	}
-
-	private String login() { // login at server at local host port 4000
-		// get from the user the inputs
-		System.out.print("Enter username: ");
-		String user = fromUser.nextLine();
-		System.out.print("Enter password: ");
-		String pass = fromUser.nextLine();
-
-		// define a new instance of the login server and its i/o streams
-		try {
-			server = new Socket("localhost", 4000);
-			toNet = new Formatter(server.getOutputStream());
+			
+			// connect to the server 
+			server = new Socket("localhost", 4004);
 			fromNet = new Scanner(server.getInputStream());
+			toNet = new Formatter(server.getOutputStream());
+	        ObjectInputStream objectInputStream = new ObjectInputStream(server.getInputStream());
+			
+	        // send DHCP DISCOVER 
+			toNet.format("%s\n", DHCP_DISCOVER);
+			toNet.flush();
+			
+			// receive the DHCP packet
+			DHCPPacket rPacket = (DHCPPacket) objectInputStream.readObject();
+			
+			System.out.println("The DHCP Packet was recieved! \n");
+			System.out.printf("%-25s %s\n", "IP Address: ", rPacket.getIp());
+			System.out.printf("%-25s %s\n", "Subnet Mask: ", rPacket.getMask());
+			System.out.printf("%-25s %s\n", "Default Gateway: ", rPacket.getGateway());
+			System.out.printf("%-25s %s\n", "DNS IP Address: ", rPacket.getDnsIP()[0]);
+			System.out.printf("%-25s %s\n", "DNS IP Address: ", rPacket.getDnsIP()[1]);
+			
+			// send DHCP REQUEST and the chosen IP
+			toNet.format("%s\n", DHCP_REQUEST);
+			toNet.flush();
+			toNet.format("%s\n", rPacket.getIp());
+			toNet.flush();
+			
+			
+			// wait for DHCP acknowledgment
+			String response = fromNet.nextLine();
+
+			if (response.equals(DHCP_ACK)) {
+				System.out.println("DHCP Acknowledgment recieved!");
+			}
+			
+			
 		} catch (IOException ioe) {
 			System.out.println(ioe);
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
 		}
-
-		// write to the server
-		toNet.format("%s\n", user);
-		toNet.flush();
-		toNet.format("%s\n", pass);
-		toNet.flush();
-
-		// return the server's response
-		return fromNet.nextLine();
 	}
 
 	public static void main(String[] args) {
