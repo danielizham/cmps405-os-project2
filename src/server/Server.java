@@ -1,9 +1,7 @@
 package server;
 
 import java.net.*;
-
 import util.Ports;
-
 import java.io.*;
 
 /*
@@ -20,6 +18,10 @@ public class Server extends Thread {
 
 	public Server(int port) {
 		this.port = port;
+
+		if (port == Ports.DHCP_SERVER_PORT)
+			new DHCPServer().start();
+
 	}
 
 	public void run() {
@@ -28,19 +30,34 @@ public class Server extends Thread {
 		} catch (SocketException se) {
 			System.exit(1);
 		}
+
 		while (true) {
 			try {
-				byte[] data = new byte[100];
-				DatagramPacket packet = new DatagramPacket(data, data.length);
-				server.receive(packet);
-				System.out.println("received");
+				byte[] payload = new byte[100];
+				DatagramPacket rPacket = new DatagramPacket(payload, payload.length);
+				server.receive(rPacket);
 
 				switch (port) {
 				case Ports.DHCP_SERVER_PORT:
-//					new DHCPServer(server, packet).start();
+
+					String request = new String(rPacket.getData(), 0, rPacket.getLength());
+
+					switch (request) {
+
+					case DHCPServer.DHCP_DISCOVER:
+						DHCPServer.handleDHCPDiscover(server, rPacket);
+						break;
+					case DHCPServer.DHCP_REQUEST:
+						DHCPServer.handleDHCPRequest(server);
+						break;
+					default:
+						break;
+					}
+
 					break;
 				case Ports.DNS_PORT:
-					new DNSServer(server, packet).start();
+					System.out.println("DNS request recieved");
+					new DNSServer(server, rPacket).start();
 					break;
 				default:
 					System.exit(0);

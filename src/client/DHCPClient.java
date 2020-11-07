@@ -2,6 +2,8 @@ package client;
 
 import java.net.*;
 import model.DHCPPacket;
+import util.Ports;
+
 import java.io.*;
 
 
@@ -22,7 +24,7 @@ public class DHCPClient {
 	        // send DHCP DISCOVER 
 			String request = DHCP_DISCOVER;
 			byte[] sdata = request.getBytes();
-			DatagramPacket spacket = new DatagramPacket(sdata,sdata.length,InetAddress.getLocalHost(),4004);
+			DatagramPacket spacket = new DatagramPacket(sdata,sdata.length,InetAddress.getLocalHost(),Ports.DHCP_SERVER_PORT);
 			client.send(spacket);
 			
 			
@@ -47,12 +49,12 @@ public class DHCPClient {
 			// send DHCP REQUEST and the chosen IP
 			request = DHCP_REQUEST;
 			sdata = request.getBytes();
-			spacket = new DatagramPacket(sdata,sdata.length,InetAddress.getLocalHost(),4004);
+			spacket = new DatagramPacket(sdata,sdata.length,InetAddress.getLocalHost(),Ports.DHCP_SERVER_PORT);
 			client.send(spacket);
 			
 			request = dhcpPacket.getIp();
 			sdata = request.getBytes();
-			spacket = new DatagramPacket(sdata,sdata.length,InetAddress.getLocalHost(),4004);
+			spacket = new DatagramPacket(sdata,sdata.length,InetAddress.getLocalHost(),Ports.DHCP_SERVER_PORT);
 			client.send(spacket);
 			
 			

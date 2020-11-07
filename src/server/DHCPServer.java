@@ -3,6 +3,8 @@ package server;
 import java.net.*;
 import java.time.LocalDateTime;
 import java.util.*;
+
+import model.DHCPPacket;
 import model.IPLease;
 
 import java.io.*;
@@ -55,13 +57,19 @@ public class DHCPServer extends Thread {
 			"192.168.0.250", "192.168.0.251", "192.168.0.252", "192.168.0.253", "192.168.0.254" ) );
 	public static ArrayList<IPLease> leases = new ArrayList<IPLease>();
 	
+	public static final String GATEWAY_IP = "192.168.0.1";
+	public static final String[] DNS_IPS = {"192.168.0.2","192.168.0.3"};
+	public static final String MASK = "255.255.0.0";
+	public static final String DHCP_DISCOVER = "DHCP DISCOVER";
+	public static final String DHCP_REQUEST = "DHCP REQUEST";
+	public static final String DHCP_ACK = "DHCP ACK";
+	
+	
 	public DHCPServer() {
 
 	}
 
-	public void run() {
-		System.out.println("DHCP Service: Serving client ...");
-		
+	public void run() {		
 		
 		// This loop will always check the date and time to find expired leased IPs
 		while(true) {
@@ -119,4 +127,72 @@ public class DHCPServer extends Thread {
 		
 		return ipPool.get(r.nextInt(ipPool.size()));
 	}
+	
+	
+	public static void handleDHCPDiscover(DatagramSocket server, DatagramPacket rPacket) {
+		
+		try {
+			
+			System.out.println(DHCPServer.DHCP_DISCOVER + " request recieved");
+
+			// create a packet object with a random IP from the pool
+			DHCPPacket dhcpPacket = new DHCPPacket(DHCPServer.getRandomAvailableIP(), DHCPServer.GATEWAY_IP, DHCPServer.MASK, DHCPServer.DNS_IPS);
+			
+			// send the packet using ObjectOutputStream and ByteArrayOutputStream		
+			ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+			ObjectOutput objectOutput = new ObjectOutputStream(byteStream); 
+			objectOutput.writeObject(dhcpPacket);
+			objectOutput.close();
+
+			byte[] data = byteStream.toByteArray();
+			
+			DatagramPacket spacket = new DatagramPacket(data,data.length, rPacket.getAddress(),rPacket.getPort());
+			server.send(spacket);
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
+	public static void handleDHCPRequest(DatagramSocket server) {
+		
+		System.out.println(DHCPServer.DHCP_REQUEST + " request recieved");	
+		
+		try {
+			
+			// get the IP
+			byte[] payload = new byte[100];
+			DatagramPacket rPacket = new DatagramPacket(payload,payload.length);
+			server.receive(rPacket);
+			String leasedIP = new String(rPacket.getData(),0,rPacket.getLength());
+			
+			// add a new lease and remove IP from the pool
+			addLease(leasedIP, rPacket);
+			
+			
+			// send DHCP Acknowledgement
+			byte[] data = DHCPServer.DHCP_ACK.getBytes();
+			DatagramPacket spacket = new DatagramPacket(data,data.length,rPacket.getAddress(),rPacket.getPort());
+			server.send(spacket);
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
+	public static void addLease(String leasedIP, DatagramPacket packet) {
+		
+		
+		LocalDateTime expiryDate = LocalDateTime.now().plusDays(1);
+					
+		IPLease lease = new IPLease(leasedIP, packet.getPort() , expiryDate);
+		
+		DHCPServer.leases.add(lease);
+		
+		DHCPServer.ipPool.remove(leasedIP);
+	
+}
+	
 }
