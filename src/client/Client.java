@@ -1,20 +1,11 @@
 package client;
 
 import java.net.*;
-import java.util.Formatter;
-import java.util.Scanner;
-
 import model.DHCPPacket;
-
 import java.io.*;
 
 
 public class Client {
-	Socket server;
-	int port;
-	Formatter toNet = null;
-	Scanner fromNet = null;
-	Scanner fromUser = new Scanner(System.in);
 	final String DHCP_DISCOVER = "DHCP DISCOVER";
 	final String DHCP_REQUEST = "DHCP REQUEST";
 	final String DHCP_ACK = "DHCP ACK";
@@ -22,48 +13,67 @@ public class Client {
 	
 
 	public Client() {
+		DatagramSocket client;
+		
 		try {
 			
-			// connect to the server 
-			server = new Socket("localhost", 4004);
-			fromNet = new Scanner(server.getInputStream());
-			toNet = new Formatter(server.getOutputStream());
-	        ObjectInputStream objectInputStream = new ObjectInputStream(server.getInputStream());
+			client = new DatagramSocket();
 			
 	        // send DHCP DISCOVER 
-			toNet.format("%s\n", DHCP_DISCOVER);
-			toNet.flush();
+			String request = DHCP_DISCOVER;
+			byte[] sdata = request.getBytes();
+			DatagramPacket spacket = new DatagramPacket(sdata,sdata.length,InetAddress.getLocalHost(),4004);
+			client.send(spacket);
+			
 			
 			// receive the DHCP packet
-			DHCPPacket rPacket = (DHCPPacket) objectInputStream.readObject();
+			byte[] rdata = new byte[1000];
+			DatagramPacket rpacket = new DatagramPacket(rdata,rdata.length);
+			client.receive(rpacket);
+			
+			ObjectInputStream iStream = new ObjectInputStream(new ByteArrayInputStream(rpacket.getData()));
+			DHCPPacket dhcpPacket = (DHCPPacket) iStream.readObject();
+
+			iStream.close();
 			
 			System.out.println("The DHCP Packet was recieved! \n");
-			System.out.printf("%-25s %s\n", "IP Address: ", rPacket.getIp());
-			System.out.printf("%-25s %s\n", "Subnet Mask: ", rPacket.getMask());
-			System.out.printf("%-25s %s\n", "Default Gateway: ", rPacket.getGateway());
-			System.out.printf("%-25s %s\n", "DNS IP Address: ", rPacket.getDnsIP()[0]);
-			System.out.printf("%-25s %s\n", "DNS IP Address: ", rPacket.getDnsIP()[1]);
+			System.out.printf("%-25s %s\n", "IP Address: ", dhcpPacket.getIp());
+			System.out.printf("%-25s %s\n", "Subnet Mask: ", dhcpPacket.getMask());
+			System.out.printf("%-25s %s\n", "Default Gateway: ", dhcpPacket.getGateway());
+			System.out.printf("%-25s %s\n", "DNS IP Address: ", dhcpPacket.getDnsIP()[0]);
+			System.out.printf("%-25s %s\n", "DNS IP Address: ", dhcpPacket.getDnsIP()[1]);
+			
 			
 			// send DHCP REQUEST and the chosen IP
-			toNet.format("%s\n", DHCP_REQUEST);
-			toNet.flush();
-			toNet.format("%s\n", rPacket.getIp());
-			toNet.flush();
+			request = DHCP_REQUEST;
+			sdata = request.getBytes();
+			spacket = new DatagramPacket(sdata,sdata.length,InetAddress.getLocalHost(),4004);
+			client.send(spacket);
+			
+			request = dhcpPacket.getIp();
+			sdata = request.getBytes();
+			spacket = new DatagramPacket(sdata,sdata.length,InetAddress.getLocalHost(),4004);
+			client.send(spacket);
 			
 			
 			// wait for DHCP acknowledgment
-			String response = fromNet.nextLine();
+			rdata = new byte[1000];
+			rpacket = new DatagramPacket(rdata,rdata.length);
+			client.receive(rpacket);
+			String response = new String(rpacket.getData(),0,rpacket.getLength());
+			
 
 			if (response.equals(DHCP_ACK)) {
 				System.out.println("DHCP Acknowledgment recieved!");
 			}
 			
 			
-		} catch (IOException ioe) {
-			System.out.println(ioe);
+		}catch(IOException ioe) {
+			ioe.printStackTrace();
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		}
+		
 	}
 
 	public static void main(String[] args) {

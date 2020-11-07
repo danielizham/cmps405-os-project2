@@ -8,9 +8,7 @@ import model.IPLease;
 import java.io.*;
 
 public class DHCPServer extends Thread {
-	Socket client;
-	Scanner fromNet = null;
-	Formatter toNet = null;
+
 
 	public static ArrayList<String> ipPool = new ArrayList<String>(Arrays.asList(
 			"192.168.0.4", "192.168.0.5", "192.168.0.6", "192.168.0.7", "192.168.0.8", "192.168.0.9",
@@ -57,8 +55,8 @@ public class DHCPServer extends Thread {
 			"192.168.0.250", "192.168.0.251", "192.168.0.252", "192.168.0.253", "192.168.0.254" ) );
 	public static ArrayList<IPLease> leases = new ArrayList<IPLease>();
 	
-	public DHCPServer(Socket client) {
-		this.client = client;
+	public DHCPServer() {
+
 	}
 
 	public void run() {
@@ -101,6 +99,7 @@ public class DHCPServer extends Thread {
 							ipLease.setDate(now.plusDays(1));
 						}
 						
+						leaseholder.close();
 						
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -113,4 +112,12 @@ public class DHCPServer extends Thread {
 		}
 		
 	}
+	
+	public static String getRandomAvailableIP() {
+		
+		Random r = new Random(System.currentTimeMillis());
+		
+		return ipPool.get(r.nextInt(ipPool.size()));
+	}
+	
 }

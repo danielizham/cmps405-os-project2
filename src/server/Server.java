@@ -14,23 +14,27 @@ public class Server extends Thread {
 	}
 
 	public void run() {
-		try {
-			server = new ServerSocket(port);
-			while (true) {
-				client = server.accept();
-
-				switch (port) {
-				case 4004:
-					new DHCPServer(client).start();
-					new DHCPListener(client).start();
-					break;
-				default:
-					System.exit(0);
-				}
-			}
-		} catch (IOException e) {
-			System.out.println(e);
-		}
+		
+		new DHCPServer().start();
+		new DHCPListener().start();
+		
+//		try {
+//			server = new ServerSocket(port);
+//			while (true) {
+//				client = server.accept();
+//
+//				switch (port) {
+//				case 4004:
+//					new DHCPServer(client).start();
+//					new DHCPListener().start();
+//					break;
+//				default:
+//					System.exit(0);
+//				}
+//			}
+//		} catch (IOException e) {
+//			System.out.println(e);
+//		}
 	}
 
 	public static void main(String[] args) {
