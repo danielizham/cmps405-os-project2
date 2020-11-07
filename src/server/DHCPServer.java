@@ -119,5 +119,4 @@ public class DHCPServer extends Thread {
 		
 		return ipPool.get(r.nextInt(ipPool.size()));
 	}
-	
 }

@@ -5,14 +5,14 @@ import model.DHCPPacket;
 import java.io.*;
 
 
-public class Client {
+public class DHCPClient {
 	final String DHCP_DISCOVER = "DHCP DISCOVER";
 	final String DHCP_REQUEST = "DHCP REQUEST";
 	final String DHCP_ACK = "DHCP ACK";
 
 	
 
-	public Client() {
+	public DHCPClient() {
 		DatagramSocket client;
 		
 		try {
@@ -77,6 +77,6 @@ public class Client {
 	}
 
 	public static void main(String[] args) {
-		new Client();
+		new DHCPClient();
 	}
 }
