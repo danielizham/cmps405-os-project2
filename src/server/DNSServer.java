@@ -3,7 +3,8 @@ package server;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
+
+import model.IPLease;
 
 /*
     Student 1  : Ali Mohammadian (201807939)
@@ -36,37 +37,44 @@ public class DNSServer extends Thread {
 		this.server = server;
 	}
 
-	private boolean hasUsedDHCP() { // How to access DHCP info of the client ???
-		InetAddress clientAddress = inboundPacket.getAddress(); // returns the current computer's IP address
-		System.out.println(clientAddress);
-		return true;
+	private boolean hasUsedDHCP() {
+		for (IPLease clientWithDHCP : DHCPServer.leases) {
+			if (clientWithDHCP.getPort() == inboundPacket.getPort())
+				return true; // the client that sent this packet has used DHCP
+		}
+		return false; // the client has not used DHCP
 	}
 
 	public void run() {
+		String response = new String("");
+
 		if (hasUsedDHCP()) {
 			byte[] data = inboundPacket.getData();
 			String domain_name = (new String(data, 0, data.length)).trim();
-			System.out.println(domain_name);
+
 			boolean found = false;
-			String response = new String("");
 			for (int i = 0; i < DNSlist.length; i++) {
 				if (DNSlist[i][0].equals(domain_name)) {
 					response = response + "Name: " + DNSlist[i][0] + "\tIP: " + DNSlist[i][1] + "\n";
 					found = true;
 				}
 			}
+
 			if (!found)
 				response = response + "Cannot resolve Name to IP ... ";
 			response = response + "\n";
 
+		} else {
+			response = "ERROR! Your device has not been assigned an IP address by the DHCP.\n"
+					+ "Please make a DHCP request before using the DNS service. Sorry for the inconvenience.";
+		}
+
+		try {
 			byte[] r = response.getBytes();
 			outboundPacket = new DatagramPacket(r, r.length, inboundPacket.getAddress(), inboundPacket.getPort());
-			System.out.println(response);
-			try {
-				server.send(outboundPacket);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			server.send(outboundPacket);
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 }
