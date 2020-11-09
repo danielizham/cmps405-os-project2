@@ -12,8 +12,6 @@ public class DHCPClient {
 	private static final String DHCP_REQUEST = "DHCP REQUEST";
 	private static final String DHCP_ACK = "DHCP ACK";
 
-	
-
 	public DHCPClient() {
 		DatagramSocket client;
 		
