@@ -38,12 +38,12 @@ public class DHCPClient {
 
 			iStream.close();
 			
-			System.out.println("The DHCP Packet was recieved! \n");
+			System.out.println("The DHCP Packet was received! \n");
 			System.out.printf("%-25s %s\n", "IP Address: ", dhcpPacket.getIp());
 			System.out.printf("%-25s %s\n", "Subnet Mask: ", dhcpPacket.getMask());
 			System.out.printf("%-25s %s\n", "Default Gateway: ", dhcpPacket.getGateway());
 			System.out.printf("%-25s %s\n", "DNS IP Address: ", dhcpPacket.getDnsIP()[0]);
-			System.out.printf("%-25s %s\n", "DNS IP Address: ", dhcpPacket.getDnsIP()[1]);
+			System.out.printf("%-25s %s\n\n", "DNS IP Address: ", dhcpPacket.getDnsIP()[1]);
 			
 			
 			// send DHCP REQUEST and the chosen IP
@@ -66,7 +66,7 @@ public class DHCPClient {
 			
 
 			if (response.equals(DHCP_ACK)) {
-				System.out.println("DHCP Acknowledgment recieved!");
+				System.out.println("DHCP Acknowledgment received!");
 			}
 			
 			

@@ -133,7 +133,7 @@ public class DHCPServer extends Thread {
 		
 		try {
 			
-			System.out.println(DHCPServer.DHCP_DISCOVER + " request recieved");
+			System.out.println(DHCPServer.DHCP_DISCOVER + " request received");
 
 			// create a packet object with a random IP from the pool
 			DHCPPacket dhcpPacket = new DHCPPacket(DHCPServer.getRandomAvailableIP(), DHCPServer.GATEWAY_IP, DHCPServer.MASK, DHCPServer.DNS_IPS);
@@ -157,7 +157,7 @@ public class DHCPServer extends Thread {
 	
 	public static void handleDHCPRequest(DatagramSocket server) {
 		
-		System.out.println(DHCPServer.DHCP_REQUEST + " request recieved");	
+		System.out.println(DHCPServer.DHCP_REQUEST + " request received");	
 		
 		try {
 			

@@ -56,7 +56,7 @@ public class Server extends Thread {
 
 					break;
 				case Ports.DNS_PORT:
-					System.out.println("DNS request recieved");
+					System.out.println("DNS request received");
 					new DNSServer(server, rPacket).start();
 					break;
 				default:
