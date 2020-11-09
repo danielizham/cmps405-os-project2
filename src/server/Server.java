@@ -13,8 +13,8 @@ import java.io.*;
 */
 
 public class Server extends Thread {
-	DatagramSocket server;
-	int port;
+	private DatagramSocket server;
+	private int port;
 
 	public Server(int port) {
 		this.port = port;

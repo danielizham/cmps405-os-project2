@@ -15,9 +15,9 @@ import java.net.InetAddress;
 
 public class DNSServer extends Thread {
 
-	DatagramPacket inboundPacket, outboundPacket;
-	DatagramSocket server;
-	String DNSlist[][] = { { "cdns2.qatar.net.qa", "212.77.192.60" }, { "www.yahoo.com", "87.248.122.122" },
+	private DatagramPacket inboundPacket, outboundPacket;
+	private DatagramSocket server;
+	private String DNSlist[][] = { { "cdns2.qatar.net.qa", "212.77.192.60" }, { "www.yahoo.com", "87.248.122.122" },
 			{ "java.sun.com", "192.9.162.55" }, { "www.google.com", "173.194.36.52" },
 			{ "www.google.com", "173.194.36.48" }, { "www.google.com", "173.194.36.50" },
 			{ "www.google.com", "173.194.36.51" }, { "www.google.com", "173.194.36.49" },
@@ -31,7 +31,7 @@ public class DNSServer extends Thread {
 			{ "www.toyota.com", "212.77.199.224" }, { "www.toyota.com", "212.77.199.203" },
 			{ "www.gmc.com", "2.22.247.241" }, { "www.mit.edu", "18.9.22.169" }, { "www.cmu.edu", "128.2.10.162" } };
 
-	public DNSServer(DatagramSocket server, DatagramPacket packet) {
+	DNSServer(DatagramSocket server, DatagramPacket packet) {
 		this.inboundPacket = packet;
 		this.server = server;
 	}

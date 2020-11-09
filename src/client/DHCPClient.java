@@ -8,9 +8,9 @@ import java.io.*;
 
 
 public class DHCPClient {
-	final String DHCP_DISCOVER = "DHCP DISCOVER";
-	final String DHCP_REQUEST = "DHCP REQUEST";
-	final String DHCP_ACK = "DHCP ACK";
+	private static final String DHCP_DISCOVER = "DHCP DISCOVER";
+	private static final String DHCP_REQUEST = "DHCP REQUEST";
+	private static final String DHCP_ACK = "DHCP ACK";
 
 	
 
