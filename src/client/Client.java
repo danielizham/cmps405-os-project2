@@ -6,7 +6,6 @@ import java.io.ObjectInputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketException;
 import java.util.Scanner;
 
 import model.DHCPPacket;
@@ -14,12 +13,22 @@ import util.Ports;
 
 public class Client {
 
+	private boolean willRequestDHCP = true;
+	private boolean willWaitForNewLeaseTime = true;
 	private DatagramSocket client;
+	private ClientPacketReceiver clientPacketReceiver;
 
-	private Client() throws SocketException {
+	private Client() throws IOException, InterruptedException {
 		client = new DatagramSocket();
-		requestDHCP();
+		if (willRequestDHCP) {
+			requestDHCP();
+			if (willWaitForNewLeaseTime) {
+				clientPacketReceiver = new ClientPacketReceiver(client);
+				clientPacketReceiver.start();
+			}
+		}
 		requestDNS();
+		clientPacketReceiver.join();
 	}
 
 	private void requestDHCP() {
@@ -45,12 +54,12 @@ public class Client {
 
 			iStream.close();
 
-			System.out.println("The DHCP Packet was received! \n");
-			System.out.printf("%-25s %s\n", "IP Address: ", dhcpPacket.getIp());
-			System.out.printf("%-25s %s\n", "Subnet Mask: ", dhcpPacket.getMask());
-			System.out.printf("%-25s %s\n", "Default Gateway: ", dhcpPacket.getGateway());
-			System.out.printf("%-25s %s\n", "DNS IP Address: ", dhcpPacket.getDnsIP()[0]);
-			System.out.printf("%-25s %s\n\n", "DNS IP Address: ", dhcpPacket.getDnsIP()[1]);
+			System.out.println("Client\t: The DHCP Packet was received!");
+			System.out.printf("\t  %-25s %s\n", "IP Address: ", dhcpPacket.getIp());
+			System.out.printf("\t  %-25s %s\n", "Subnet Mask: ", dhcpPacket.getMask());
+			System.out.printf("\t  %-25s %s\n", "Default Gateway: ", dhcpPacket.getGateway());
+			System.out.printf("\t  %-25s %s\n", "DNS IP Address: ", dhcpPacket.getDnsIP()[0]);
+			System.out.printf("\t  %-25s %s\n", "DNS IP Address: ", dhcpPacket.getDnsIP()[1]);
 
 			// send DHCP REQUEST and the chosen IP
 			request = DHCP_REQUEST;
@@ -70,7 +79,7 @@ public class Client {
 			String response = new String(rpacket.getData(), 0, rpacket.getLength());
 
 			if (response.equals(DHCP_ACK)) {
-				System.out.println("DHCP Acknowledgment received!");
+				System.out.println("Client\t: DHCP Acknowledgment received!");
 			}
 
 		} catch (IOException | ClassNotFoundException e) {
@@ -84,16 +93,11 @@ public class Client {
 			kb = new Scanner(System.in);
 			System.out.print("\nEnter a domain name to be translated: ");
 			String message = kb.nextLine();
+//			String message = "www.google.com\n";
 
 			byte[] data = message.getBytes();
 			DatagramPacket packet = new DatagramPacket(data, data.length, InetAddress.getLocalHost(), Ports.DNS_PORT);
 			client.send(packet);
-
-			byte[] receivedData = new byte[1000];
-			DatagramPacket receivedPacket = new DatagramPacket(receivedData, receivedData.length);
-			client.receive(receivedPacket);
-			System.out.printf("%s\n", new String(receivedPacket.getData(), 0, receivedPacket.getLength()));
-
 		} catch (IOException ioe) {
 			System.exit(1);
 		} finally {
@@ -105,7 +109,7 @@ public class Client {
 	public static void main(String[] args) {
 		try {
 			new Client();
-		} catch (SocketException e) {
+		} catch (IOException | InterruptedException e) {
 			System.exit(1);
 		}
 	}
