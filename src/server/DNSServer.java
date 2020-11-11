@@ -61,8 +61,7 @@ public class DNSServer extends Thread {
 			}
 
 			if (!found)
-				response = response + "Cannot resolve Name to IP ... \n";
-//			response = response + "\n";
+				response = response + "DNS\t: Cannot resolve Name to IP ... \n";
 
 		} else {
 			response = "DNS\t: ERROR! Your device has not been assigned an IP address by the DHCP.\n"

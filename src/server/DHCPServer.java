@@ -18,6 +18,14 @@ import model.DHCPPacket;
 import model.IPLease;
 import util.Ports;
 
+/*
+    Student 1  : Ali Mohammadian (201807939)
+    Student 2  : Mohamed Daniel Bin Mohamed Izham (201802738)
+    Course     : CMPS 405 - Operating Systems
+    Assessment : Project 2
+    Instructor : Heba M. Dawoud
+*/
+
 public class DHCPServer extends Thread {
 
 	private DatagramSocket IPLeaseServer;
@@ -31,7 +39,7 @@ public class DHCPServer extends Thread {
 	}
 
 	private static TimeUnit timeUnit = TimeUnit.SECOND;
-	private static long numOfTimeUnits = 10;
+	private static long numOfTimeUnits = 5;
 
 	private static ArrayList<String> ipPool = new ArrayList<String>(Arrays.asList("192.168.0.4", "192.168.0.5",
 			"192.168.0.6", "192.168.0.7", "192.168.0.8", "192.168.0.9", "192.168.0.10", "192.168.0.11", "192.168.0.12",
@@ -169,7 +177,7 @@ public class DHCPServer extends Thread {
 			System.out.println("DHCP\t: " + DHCPServer.DHCP_DISCOVER + " request received");
 
 			// create a packet object with a random IP from the pool
-			DHCPPacket dhcpPacket = new DHCPPacket(DHCPServer.getRandomAvailableIP(), DHCPServer.GATEWAY_IP,
+			DHCPPacket dhcpPacket = new DHCPPacket(DHCPServer.getRandomAvailableIP(), rPacket.getPort(), DHCPServer.GATEWAY_IP,
 					DHCPServer.MASK, DHCPServer.DNS_IPS);
 
 			// send the packet using ObjectOutputStream and ByteArrayOutputStream

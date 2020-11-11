@@ -3,6 +3,14 @@ package model;
 import java.net.InetSocketAddress;
 import java.time.LocalDateTime;
 
+/*
+    Student 1  : Ali Mohammadian (201807939)
+    Student 2  : Mohamed Daniel Bin Mohamed Izham (201802738)
+    Course     : CMPS 405 - Operating Systems
+    Assessment : Project 2
+    Instructor : Heba M. Dawoud
+*/
+
 public class IPLease {
 
 	private String ip;

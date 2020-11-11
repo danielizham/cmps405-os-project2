@@ -11,12 +11,23 @@ import java.util.Scanner;
 import model.DHCPPacket;
 import util.Ports;
 
+/*
+    Student 1  : Ali Mohammadian (201807939)
+    Student 2  : Mohamed Daniel Bin Mohamed Izham (201802738)
+    Course     : CMPS 405 - Operating Systems
+    Assessment : Project 2
+    Instructor : Heba M. Dawoud
+*/
+
 public class Client {
 
 	private boolean willRequestDHCP = true;
 	private boolean willWaitForNewLeaseTime = true;
 	private DatagramSocket client;
 	private ClientPacketReceiver clientPacketReceiver;
+	private String myIP = "";
+	private int myPort;
+	static boolean isRequestingDNS = false;
 
 	private Client() throws IOException, InterruptedException {
 		client = new DatagramSocket();
@@ -29,6 +40,7 @@ public class Client {
 		}
 		requestDNS();
 		clientPacketReceiver.join();
+		System.out.printf("Client\t: Client with IP address %s at port %d has terminated.%n", myIP, myPort);
 	}
 
 	private void requestDHCP() {
@@ -61,6 +73,9 @@ public class Client {
 			System.out.printf("\t  %-25s %s\n", "DNS IP Address: ", dhcpPacket.getDnsIP()[0]);
 			System.out.printf("\t  %-25s %s\n", "DNS IP Address: ", dhcpPacket.getDnsIP()[1]);
 
+			myIP = dhcpPacket.getIp();
+			myPort = dhcpPacket.getPort();
+			
 			// send DHCP REQUEST and the chosen IP
 			request = DHCP_REQUEST;
 			sdata = request.getBytes();
@@ -88,12 +103,13 @@ public class Client {
 	}
 
 	private void requestDNS() {
+		isRequestingDNS = true;
 		Scanner kb = null;
 		try {
 			kb = new Scanner(System.in);
-			System.out.print("\nEnter a domain name to be translated: ");
+			System.out.print("Client\t: Enter a domain name to be translated: ");
 			String message = kb.nextLine();
-//			String message = "www.google.com\n";
+			isRequestingDNS = false;
 
 			byte[] data = message.getBytes();
 			DatagramPacket packet = new DatagramPacket(data, data.length, InetAddress.getLocalHost(), Ports.DNS_PORT);
