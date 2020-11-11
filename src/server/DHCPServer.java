@@ -1,15 +1,37 @@
 package server;
 
-import java.net.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutput;
+import java.io.ObjectOutputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Random;
 
 import model.DHCPPacket;
 import model.IPLease;
-
-import java.io.*;
+import util.Ports;
 
 public class DHCPServer extends Thread {
+
+	private DatagramSocket IPLeaseServer;
+	private DatagramPacket rpacket;
+	private DatagramPacket spacket;
+	private byte[] rdata;
+	private byte[] sdata;
+
+	private enum TimeUnit {
+		DAY, MINUTE, SECOND
+	}
+
+	private static TimeUnit timeUnit = TimeUnit.SECOND;
+	private static long numOfTimeUnits = 10;
 
 	private static ArrayList<String> ipPool = new ArrayList<String>(Arrays.asList("192.168.0.4", "192.168.0.5",
 			"192.168.0.6", "192.168.0.7", "192.168.0.8", "192.168.0.9", "192.168.0.10", "192.168.0.11", "192.168.0.12",
@@ -64,16 +86,21 @@ public class DHCPServer extends Thread {
 	static final String DHCP_ACK = "DHCP ACK";
 
 	DHCPServer() {
-
 	}
 
 	public void run() {
+		try {
+			IPLeaseServer = new DatagramSocket(Ports.DHCP_IPLEASE_PORT);
+			IPLeaseServer.setSoTimeout(1000);
+		} catch (SocketException e1) {
+			e1.printStackTrace();
+		}
 
 		// This loop will always check the date and time to find expired leased IPs
 		while (true) {
 
 			LocalDateTime now = LocalDateTime.now();
-
+			
 			// create a new temporary list to avoid
 			// java.util.ConcurrentModificationException caused by other threads
 			ArrayList<IPLease> currentLeases = new ArrayList<IPLease>(leases);
@@ -83,28 +110,38 @@ public class DHCPServer extends Thread {
 				// if the lease is expired
 				if (ipLease.isExpired(now)) {
 
-					/*
-					 * 
-					 * Could Not Test The Code below, didn't know how ¯\_(ツ)_/¯
-					 * 
-					 */
-
 					try {
-						// connect to the leaseholder
-						Socket leaseholder = new Socket(ipLease.getIp(), ipLease.getPort());
+						String ip = ipLease.getIp();
+						int port = ipLease.getPort();
 
-						// if the leaseholder is not reachable
-						if (!leaseholder.getInetAddress().isReachable(1000)) {
+						String renewalInfo = String
+								.format("DHCP\t: Successfully renewed lease for IP address %s at port number %d%n", ip, port);
+						System.out.print(renewalInfo);
+						sdata = renewalInfo.getBytes();
+						spacket = new DatagramPacket(sdata, sdata.length, InetAddress.getLocalHost(), port);
+						IPLeaseServer.send(spacket);
 
+						try {
+							rdata = new byte[1000];
+							rpacket = new DatagramPacket(rdata, rdata.length);
+							IPLeaseServer.receive(rpacket);
+
+							switch (timeUnit) {
+							case DAY:
+								ipLease.setDate(now.plusDays(numOfTimeUnits));
+								break;
+							case MINUTE:
+								ipLease.setDate(now.plusMinutes(numOfTimeUnits));
+								break;
+							case SECOND:
+								ipLease.setDate(now.plusSeconds(numOfTimeUnits));
+								break;
+							}
+						} catch (SocketTimeoutException ste) {
 							leases.remove(ipLease);
 							ipPool.add(ipLease.getIp());
-
-						} else {
-							// if the leaseholder is available, renew the lease for 1 day
-							ipLease.setDate(now.plusDays(1));
+							System.out.printf("DHCP\t: IP address %s failed to be renewed%n", ip);
 						}
-
-						leaseholder.close();
 
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -129,7 +166,7 @@ public class DHCPServer extends Thread {
 
 		try {
 
-			System.out.println(DHCPServer.DHCP_DISCOVER + " request received");
+			System.out.println("DHCP\t: " + DHCPServer.DHCP_DISCOVER + " request received");
 
 			// create a packet object with a random IP from the pool
 			DHCPPacket dhcpPacket = new DHCPPacket(DHCPServer.getRandomAvailableIP(), DHCPServer.GATEWAY_IP,
@@ -154,7 +191,7 @@ public class DHCPServer extends Thread {
 
 	static void handleDHCPRequest(DatagramSocket server) {
 
-		System.out.println(DHCPServer.DHCP_REQUEST + " request received");
+		System.out.println("DHCP\t: " + DHCPServer.DHCP_REQUEST + " request received");
 
 		try {
 
@@ -180,7 +217,17 @@ public class DHCPServer extends Thread {
 
 	private static void addLease(String leasedIP, DatagramPacket packet) {
 
-		LocalDateTime expiryDate = LocalDateTime.now().plusDays(1);
+		LocalDateTime expiryDate = null;
+		switch (timeUnit) {
+		case DAY:
+			expiryDate = LocalDateTime.now().plusDays(numOfTimeUnits);
+			break;
+		case MINUTE:
+			expiryDate = LocalDateTime.now().plusMinutes(numOfTimeUnits);
+			break;
+		case SECOND:
+			expiryDate = LocalDateTime.now().plusSeconds(numOfTimeUnits);
+		}
 
 		IPLease lease = new IPLease(leasedIP, packet.getPort(), expiryDate);
 

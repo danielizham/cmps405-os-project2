@@ -46,7 +46,7 @@ public class Server extends Thread {
 
 					case DHCPServer.DHCP_DISCOVER:
 						DHCPServer.handleDHCPDiscover(server, rPacket);
-						break;
+						break;  
 					case DHCPServer.DHCP_REQUEST:
 						DHCPServer.handleDHCPRequest(server);
 						break;
@@ -56,7 +56,7 @@ public class Server extends Thread {
 
 					break;
 				case Ports.DNS_PORT:
-					System.out.println("DNS request received");
+					System.out.println("DNS\t: DNS request received");
 					new DNSServer(server, rPacket).start();
 					break;
 				default:

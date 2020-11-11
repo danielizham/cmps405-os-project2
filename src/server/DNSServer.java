@@ -55,18 +55,18 @@ public class DNSServer extends Thread {
 			boolean found = false;
 			for (int i = 0; i < DNSlist.length; i++) {
 				if (DNSlist[i][0].equals(domain_name)) {
-					response = response + "Name: " + DNSlist[i][0] + "\tIP: " + DNSlist[i][1] + "\n";
+					response = response + "DNS\t: " + DNSlist[i][0] + " corresponds to IP address " + DNSlist[i][1] + "\n";
 					found = true;
 				}
 			}
 
 			if (!found)
-				response = response + "Cannot resolve Name to IP ... ";
-			response = response + "\n";
+				response = response + "Cannot resolve Name to IP ... \n";
+//			response = response + "\n";
 
 		} else {
-			response = "ERROR! Your device has not been assigned an IP address by the DHCP.\n"
-					+ "Please make a DHCP request before using the DNS service. Sorry for the inconvenience.";
+			response = "DNS\t: ERROR! Your device has not been assigned an IP address by the DHCP.\n"
+					+ "\t  Please make a DHCP request before using the DNS service. Sorry for the inconvenience.";
 		}
 
 		try {

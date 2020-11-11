@@ -11,5 +11,6 @@ package util;
 public class Ports {
 	public static final int DHCP_SERVER_PORT = 4000;
 	public static final int DHCP_CLIENT_PORT = 4001;
-	public static final int DNS_PORT = 4002;
+	public static final int DHCP_IPLEASE_PORT = 4002;
+	public static final int DNS_PORT = 4003;
 }
