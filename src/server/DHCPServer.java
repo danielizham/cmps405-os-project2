@@ -108,7 +108,7 @@ public class DHCPServer extends Thread {
 		while (true) {
 
 			LocalDateTime now = LocalDateTime.now();
-			
+
 			// create a new temporary list to avoid
 			// java.util.ConcurrentModificationException caused by other threads
 			ArrayList<IPLease> currentLeases = new ArrayList<IPLease>(leases);
@@ -122,9 +122,9 @@ public class DHCPServer extends Thread {
 						String ip = ipLease.getIp();
 						int port = ipLease.getPort();
 
-						String renewalInfo = String
-								.format("DHCP\t: Successfully renewed lease for IP address %s at port number %d%n", ip, port);
-						System.out.print(renewalInfo);
+						// send an ip renewal message and see if the client replies in the try-catch block
+						String renewalInfo = String.format(
+								"DHCP\t: Successfully renewed lease for IP address %s at port number %d%n", ip, port);
 						sdata = renewalInfo.getBytes();
 						spacket = new DatagramPacket(sdata, sdata.length, InetAddress.getLocalHost(), port);
 						IPLeaseServer.send(spacket);
@@ -133,6 +133,10 @@ public class DHCPServer extends Thread {
 							rdata = new byte[1000];
 							rpacket = new DatagramPacket(rdata, rdata.length);
 							IPLeaseServer.receive(rpacket);
+
+							String response = new String(rpacket.getData(), 0, rpacket.getLength());
+							if (!response.toLowerCase().contains("suspend your output"))
+								System.out.print(renewalInfo);
 
 							switch (timeUnit) {
 							case DAY:
@@ -177,8 +181,8 @@ public class DHCPServer extends Thread {
 			System.out.println("DHCP\t: " + DHCPServer.DHCP_DISCOVER + " request received");
 
 			// create a packet object with a random IP from the pool
-			DHCPPacket dhcpPacket = new DHCPPacket(DHCPServer.getRandomAvailableIP(), rPacket.getPort(), DHCPServer.GATEWAY_IP,
-					DHCPServer.MASK, DHCPServer.DNS_IPS);
+			DHCPPacket dhcpPacket = new DHCPPacket(DHCPServer.getRandomAvailableIP(), rPacket.getPort(),
+					DHCPServer.GATEWAY_IP, DHCPServer.MASK, DHCPServer.DNS_IPS);
 
 			// send the packet using ObjectOutputStream and ByteArrayOutputStream
 			ByteArrayOutputStream byteStream = new ByteArrayOutputStream();

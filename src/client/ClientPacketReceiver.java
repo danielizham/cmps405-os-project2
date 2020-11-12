@@ -35,7 +35,10 @@ public class ClientPacketReceiver extends Thread {
 				String response = new String(rpacket.getData(), 0, rpacket.getLength());
 
 				if (response.toLowerCase().contains("lease")) {
-					sdata = ipLeaseAck.getBytes();
+					if (Client.isRequestingDNS)
+						sdata = "Client\t: Server, please suspend your output".getBytes();
+					else
+						sdata = ipLeaseAck.getBytes();
 					spacket = new DatagramPacket(sdata, sdata.length, rpacket.getAddress(), rpacket.getPort());
 					client.send(spacket);
 				}
