@@ -38,8 +38,8 @@ public class DHCPServer extends Thread {
 		DAY, MINUTE, SECOND
 	}
 
-	private static TimeUnit timeUnit = TimeUnit.SECOND;
-	private static long numOfTimeUnits = 5;
+	private static TimeUnit timeUnit = TimeUnit.DAY;
+	private static long numOfTimeUnits = 1;
 
 	private static ArrayList<String> ipPool = new ArrayList<String>(Arrays.asList("192.168.0.4", "192.168.0.5",
 			"192.168.0.6", "192.168.0.7", "192.168.0.8", "192.168.0.9", "192.168.0.10", "192.168.0.11", "192.168.0.12",
@@ -123,8 +123,8 @@ public class DHCPServer extends Thread {
 							String ip = ipLease.getIp();
 							int port = ipLease.getPort();
 
-							// send an ip renewal message and see if the client replies in the try-catch
-							// block
+							// send an ip renewal message and see if the client
+							// replies in the try-catch block
 							String renewalInfo = String.format(
 									"DHCP\t: Successfully renewed lease for IP address %s at port number %d%n", ip,
 									port);
