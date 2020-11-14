@@ -1,83 +1,133 @@
 package client;
 
-import java.net.*;
-import java.util.Formatter;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.util.Scanner;
-import java.io.*;
 
-// Name       : Mohamed Daniel Bin Mohamed Izham
-// QUID       : 201802738
-// Course     : CMPS 405 - Operating Systems
-// Assessment : Homework 2
-// Instructor : Mohammad Saleh Mustafa Saleh
+import model.DHCPPacket;
+import util.Ports;
+
+/*
+    Student 1  : Ali Mohammadian (201807939)
+    Student 2  : Mohamed Daniel Bin Mohamed Izham (201802738)
+    Course     : CMPS 405 - Operating Systems
+    Assessment : Project 2
+    Instructor : Heba M. Dawoud
+*/
 
 public class Client {
-	Socket server;
-	int port;
-	Formatter toNet = null;
-	Scanner fromNet = null;
-	Scanner fromUser = new Scanner(System.in);
-	int MAX_ATTEMPTS = 3;
 
-	public Client() {
+	private boolean willRequestDHCP = true;
+	private boolean willWaitForNewLeaseTime = true;
+	private DatagramSocket client;
+	private ClientPacketReceiver clientPacketReceiver;
+	private String myIP = "";
+	private int myPort;
+	static boolean isRequestingDNS = false;
+
+	private Client() throws IOException, InterruptedException {
+		client = new DatagramSocket();
+		if (willRequestDHCP) {
+			requestDHCP();
+			if (willWaitForNewLeaseTime) {
+				clientPacketReceiver = new ClientPacketReceiver(client);
+				clientPacketReceiver.start();
+			}
+		}
+		requestDNS();
+		clientPacketReceiver.join();
+		System.out.printf("Client\t: Client with IP address %s at port %d has terminated.%n", myIP, myPort);
+	}
+
+	private void requestDHCP() {
+		final String DHCP_DISCOVER = "DHCP DISCOVER";
+		final String DHCP_REQUEST = "DHCP REQUEST";
+		final String DHCP_ACK = "DHCP ACK";
+
 		try {
-			String response = login();
-			int attemptsRemaining = MAX_ATTEMPTS - 1;
-			while (response.equals("invalid") && attemptsRemaining > 0) {
-				System.out.printf("Invalid login. Please re-enter your credentials. Attempts remaining: %d%n%n",
-						attemptsRemaining--);
+			// send DHCP DISCOVER
+			String request = DHCP_DISCOVER;
+			byte[] sdata = request.getBytes();
+			DatagramPacket spacket = new DatagramPacket(sdata, sdata.length, InetAddress.getLocalHost(),
+					Ports.DHCP_SERVER_PORT);
+			client.send(spacket);
 
-				response = login();
+			// receive the DHCP packet
+			byte[] rdata = new byte[1000];
+			DatagramPacket rpacket = new DatagramPacket(rdata, rdata.length);
+			client.receive(rpacket);
+
+			ObjectInputStream iStream = new ObjectInputStream(new ByteArrayInputStream(rpacket.getData()));
+			DHCPPacket dhcpPacket = (DHCPPacket) iStream.readObject();
+
+			iStream.close();
+
+			System.out.println("Client\t: The DHCP Packet was received!");
+			System.out.printf("\t  %-25s %s\n", "IP Address: ", dhcpPacket.getIp());
+			System.out.printf("\t  %-25s %s\n", "Subnet Mask: ", dhcpPacket.getMask());
+			System.out.printf("\t  %-25s %s\n", "Default Gateway: ", dhcpPacket.getGateway());
+			System.out.printf("\t  %-25s %s\n", "DNS IP Address: ", dhcpPacket.getDnsIP()[0]);
+			System.out.printf("\t  %-25s %s\n", "DNS IP Address: ", dhcpPacket.getDnsIP()[1]);
+
+			myIP = dhcpPacket.getIp();
+			myPort = dhcpPacket.getPort();
+			
+			// send DHCP REQUEST and the chosen IP
+			request = DHCP_REQUEST;
+			sdata = request.getBytes();
+			spacket = new DatagramPacket(sdata, sdata.length, InetAddress.getLocalHost(), Ports.DHCP_SERVER_PORT);
+			client.send(spacket);
+
+			request = dhcpPacket.getIp();
+			sdata = request.getBytes();
+			spacket = new DatagramPacket(sdata, sdata.length, InetAddress.getLocalHost(), Ports.DHCP_SERVER_PORT);
+			client.send(spacket);
+
+			// wait for DHCP acknowledgement
+			rdata = new byte[1000];
+			rpacket = new DatagramPacket(rdata, rdata.length);
+			client.receive(rpacket);
+			String response = new String(rpacket.getData(), 0, rpacket.getLength());
+
+			if (response.equals(DHCP_ACK)) {
+				System.out.println("Client\t: DHCP Acknowledgment received!");
 			}
 
-			// if login is successful, vote at local host port 4001
-			if (response.equals("valid")) {
-				server = new Socket("localhost", 4001);
-				toNet = new Formatter(server.getOutputStream());
-
-				System.out.print("Enter a number that you want to vote for [0-9]: ");
-				String vote = fromUser.nextLine();
-				toNet.format("%s\n", vote);
-				toNet.flush();
-				System.out.println("Thank you for participating in the voting process. Goodbye...");
-			} else {
-				System.out.println("You have reached the maximum number of attempts. "
-						+ "Please contact your local administration to resolve the issue.");
-				System.out.println("Thank you for using our service.");
-			}
-
-		} catch (IOException ioe) {
-			System.out.println(ioe);
+		} catch (IOException | ClassNotFoundException e) {
+			e.printStackTrace();
 		}
 	}
 
-	private String login() { // login at server at local host port 4000
-		// get from the user the inputs
-		System.out.print("Enter username: ");
-		String user = fromUser.nextLine();
-		System.out.print("Enter password: ");
-		String pass = fromUser.nextLine();
-
-		// define a new instance of the login server and its i/o streams
+	private void requestDNS() {
+		isRequestingDNS = true;
+		Scanner kb = null;
 		try {
-			server = new Socket("localhost", 4000);
-			toNet = new Formatter(server.getOutputStream());
-			fromNet = new Scanner(server.getInputStream());
+			kb = new Scanner(System.in);
+			System.out.print("Client\t: Enter a domain name to be translated: ");
+			String message = kb.nextLine();
+			isRequestingDNS = false;
+
+			byte[] data = message.getBytes();
+			DatagramPacket packet = new DatagramPacket(data, data.length, InetAddress.getLocalHost(), Ports.DNS_PORT);
+			client.send(packet);
 		} catch (IOException ioe) {
-			System.out.println(ioe);
+			System.exit(1);
+		} finally {
+			if (kb != null)
+				kb.close();
 		}
-
-		// write to the server
-		toNet.format("%s\n", user);
-		toNet.flush();
-		toNet.format("%s\n", pass);
-		toNet.flush();
-
-		// return the server's response
-		return fromNet.nextLine();
 	}
 
 	public static void main(String[] args) {
-		new Client();
+		try {
+			new Client();
+		} catch (IOException | InterruptedException e) {
+			System.exit(1);
+		}
 	}
+
 }
