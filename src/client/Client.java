@@ -34,7 +34,7 @@ public class Client {
 		if (willRequestDHCP) {
 			requestDHCP();
 			if (willWaitForNewLeaseTime) {
-				clientPacketReceiver = new ClientPacketReceiver(client);
+				clientPacketReceiver = new ClientPacketReceiver(client, this);
 				clientPacketReceiver.start();
 			}
 		}
@@ -43,7 +43,7 @@ public class Client {
 		System.out.printf("Client\t: Client with IP address %s at port %d has terminated.%n", myIP, myPort);
 	}
 
-	private void requestDHCP() {
+	void requestDHCP() {
 		final String DHCP_DISCOVER = "DHCP DISCOVER";
 		final String DHCP_REQUEST = "DHCP REQUEST";
 		final String DHCP_ACK = "DHCP ACK";

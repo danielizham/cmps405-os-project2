@@ -38,8 +38,8 @@ public class DHCPServer extends Thread {
 		DAY, MINUTE, SECOND
 	}
 
-	private static TimeUnit timeUnit = TimeUnit.DAY;
-	private static long numOfTimeUnits = 1;
+	private static TimeUnit timeUnit = TimeUnit.SECOND;
+	private static long numOfTimeUnits = 3;
 
 	private static ArrayList<String> ipPool = new ArrayList<String>(Arrays.asList("192.168.0.4", "192.168.0.5",
 			"192.168.0.6", "192.168.0.7", "192.168.0.8", "192.168.0.9", "192.168.0.10", "192.168.0.11", "192.168.0.12",
@@ -118,53 +118,82 @@ public class DHCPServer extends Thread {
 				if (ipLease != null) {
 					// if the lease is expired
 					if (ipLease.isExpired(now)) {
-
-						try {
-							String ip = ipLease.getIp();
-							int port = ipLease.getPort();
-
-							// send an ip renewal message and see if the client
-							// replies in the try-catch block
-							String renewalInfo = String.format(
-									"DHCP\t: Successfully renewed lease for IP address %s at port number %d%n", ip,
-									port);
-							sdata = renewalInfo.getBytes();
-							spacket = new DatagramPacket(sdata, sdata.length, InetAddress.getLocalHost(), port);
-							IPLeaseServer.send(spacket);
-
+						String ip = ipLease.getIp();
+						int port = ipLease.getPort();
+						
+						if (hasDuplicatesAndNotFirstElem(ipLease, currentLeases)) {
+							// among the duplicates, only the first one will be renewed
+							// the rest will need to make another DHCP request
 							try {
-								rdata = new byte[1000];
-								rpacket = new DatagramPacket(rdata, rdata.length);
-								IPLeaseServer.receive(rpacket);
-
-								String response = new String(rpacket.getData(), 0, rpacket.getLength());
-								if (!response.toLowerCase().contains("suspend your output"))
-									System.out.print(renewalInfo);
-
-								switch (timeUnit) {
-								case DAY:
-									ipLease.setDate(now.plusDays(numOfTimeUnits));
-									break;
-								case MINUTE:
-									ipLease.setDate(now.plusMinutes(numOfTimeUnits));
-									break;
-								case SECOND:
-									ipLease.setDate(now.plusSeconds(numOfTimeUnits));
-									break;
-								}
-							} catch (SocketTimeoutException ste) {
-								leases.remove(ipLease);
-								ipPool.add(ipLease.getIp());
-								System.out.printf("DHCP\t: IP address %s failed to be renewed%n", ip);
+								String leaseFailureMessage = String
+										.format("DHCP\t: Client, your IP is taken. Please request DHCP again%n");
+								sdata = leaseFailureMessage.getBytes();
+								spacket = new DatagramPacket(sdata, sdata.length, InetAddress.getLocalHost(), port);
+								IPLeaseServer.send(spacket);
+							} catch (IOException e) {
+								e.printStackTrace();
 							}
+						} else {
+							try {
+								// send an ip renewal message and see if the client
+								// replies in the try-catch block
+								String renewalInfo = String.format(
+										"DHCP\t: Successfully renewed lease for IP address %s at port number %d%n", ip,
+										port);
+								sdata = renewalInfo.getBytes();
+								spacket = new DatagramPacket(sdata, sdata.length, InetAddress.getLocalHost(), port);
+								IPLeaseServer.send(spacket);
 
-						} catch (IOException e) {
-							e.printStackTrace();
+								try {
+									rdata = new byte[1000];
+									rpacket = new DatagramPacket(rdata, rdata.length);
+									IPLeaseServer.receive(rpacket);
+
+									String response = new String(rpacket.getData(), 0, rpacket.getLength());
+									if (!response.toLowerCase().contains("suspend your output"))
+										System.out.print(renewalInfo);
+
+									switch (timeUnit) {
+									case DAY:
+										ipLease.setDate(now.plusDays(numOfTimeUnits));
+										break;
+									case MINUTE:
+										ipLease.setDate(now.plusMinutes(numOfTimeUnits));
+										break;
+									case SECOND:
+										ipLease.setDate(now.plusSeconds(numOfTimeUnits));
+										break;
+									}
+								} catch (SocketTimeoutException ste) {
+									leases.remove(ipLease);
+									ipPool.add(ipLease.getIp());
+									System.out.printf("DHCP\t: IP address %s failed to be renewed%n", ip);
+								}
+
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
 						}
 					}
 				}
 			}
 		}
+	}
+
+	private boolean hasDuplicatesAndNotFirstElem(IPLease ipLease, ArrayList<IPLease> currentLeases) {
+		// Assume first there is no duplicate, hence it is also the first element.
+		boolean isDuplicate = false;
+		boolean isFirst = true;
+		for (IPLease lease : currentLeases) {
+			if (lease.getIp().equals(ipLease.getIp()) && lease.getPort() != ipLease.getPort()) {
+				isDuplicate = true;
+				if (currentLeases.indexOf(lease) < currentLeases.indexOf(ipLease)) {
+					isFirst = false;
+					break;
+				}
+			}
+		}
+		return (isDuplicate && !isFirst);
 	}
 
 	private static String getRandomAvailableIP() {

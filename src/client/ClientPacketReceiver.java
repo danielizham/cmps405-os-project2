@@ -19,10 +19,12 @@ public class ClientPacketReceiver extends Thread {
 	private DatagramPacket spacket;
 	private byte[] rdata;
 	private byte[] sdata;
+	private Client clientInstance;
 	private final String ipLeaseAck = String.format("Client\t: IP lease renewal acknowledged.");
 
-	ClientPacketReceiver(DatagramSocket client) {
+	ClientPacketReceiver(DatagramSocket client, Client clientInstance) {
 		this.client = client;
+		this.clientInstance = clientInstance;
 	}
 
 	public void run() {
@@ -41,6 +43,8 @@ public class ClientPacketReceiver extends Thread {
 						sdata = ipLeaseAck.getBytes();
 					spacket = new DatagramPacket(sdata, sdata.length, rpacket.getAddress(), rpacket.getPort());
 					client.send(spacket);
+				} else if (response.toLowerCase().contains("request dhcp again")) {
+					clientInstance.requestDHCP();
 				}
 
 				if (!Client.isRequestingDNS)
