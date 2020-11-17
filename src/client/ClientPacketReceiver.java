@@ -29,15 +29,20 @@ public class ClientPacketReceiver extends Thread {
 
 	public void run() {
 //		while (true) {
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < 10; i++) {
 			try {
 				rdata = new byte[1000];
 				rpacket = new DatagramPacket(rdata, rdata.length);
 				client.receive(rpacket);
 				String response = new String(rpacket.getData(), 0, rpacket.getLength());
 
+				if (response.toLowerCase().contains("error")) {
+					System.out.print(response);
+					return;
+				}
+				
 				if (response.toLowerCase().contains("lease")) {
-					if (Client.isRequestingDNS)
+					if (clientInstance.isRequestingDNS)
 						sdata = "Client\t: Server, please suspend your output".getBytes();
 					else
 						sdata = ipLeaseAck.getBytes();
@@ -47,7 +52,7 @@ public class ClientPacketReceiver extends Thread {
 					clientInstance.requestDHCP();
 				}
 
-				if (!Client.isRequestingDNS)
+				if (!clientInstance.isRequestingDNS)
 					System.out.printf("%s", response);
 			} catch (IOException e) {
 				e.printStackTrace();

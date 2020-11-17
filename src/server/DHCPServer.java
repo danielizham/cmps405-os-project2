@@ -39,8 +39,8 @@ public class DHCPServer extends Thread {
 		DAY, MINUTE, SECOND
 	}
 	// DEFAULT: 1 day
-	private static TimeUnit timeUnit = TimeUnit.DAY;
-	private static long numOfTimeUnits = 1;
+	private static TimeUnit timeUnit = TimeUnit.SECOND;
+	private static long numOfTimeUnits = 3;
 
 	private static ArrayList<String> ipPool = new ArrayList<String>(Arrays.asList("192.168.0.4", "192.168.0.5",
 			"192.168.0.6", "192.168.0.7", "192.168.0.8", "192.168.0.9", "192.168.0.10", "192.168.0.11", "192.168.0.12",

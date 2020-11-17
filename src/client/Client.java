@@ -22,25 +22,30 @@ import util.Ports;
 public class Client {
 
 	private boolean willRequestDHCP = true;
-	private boolean willWaitForNewLeaseTime = true;
 	private DatagramSocket client;
 	private ClientPacketReceiver clientPacketReceiver;
 	private String myIP = "";
 	private int myPort;
-	static boolean isRequestingDNS = false;
+	boolean isRequestingDNS = false;
 
 	private Client() throws IOException, InterruptedException {
 		client = new DatagramSocket();
-		if (willRequestDHCP) {
+		
+		if (willRequestDHCP)
 			requestDHCP();
-			if (willWaitForNewLeaseTime) {
-				clientPacketReceiver = new ClientPacketReceiver(client, this);
-				clientPacketReceiver.start();
-			}
-		}
+		
+		clientPacketReceiver = new ClientPacketReceiver(client, this);
+		clientPacketReceiver.start();
+		
 		requestDNS();
-		clientPacketReceiver.join();
-		System.out.printf("Client\t: Client with IP address %s at port %d has terminated.%n", myIP, myPort);
+		
+		if (clientPacketReceiver != null)
+			clientPacketReceiver.join();
+		
+		if (!myIP.equals(""))
+			System.out.printf("Client\t: Client with IP address %s at port %d has terminated.%n", myIP, myPort);
+		else
+			System.out.println("Client\t: Client without an IP address has terminated.");
 	}
 
 	void requestDHCP() {
@@ -75,7 +80,7 @@ public class Client {
 
 			myIP = dhcpPacket.getIp();
 			myPort = dhcpPacket.getPort();
-			
+
 			// send DHCP REQUEST and the chosen IP
 			request = DHCP_REQUEST;
 			sdata = request.getBytes();
