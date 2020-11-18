@@ -30,9 +30,13 @@ public class Client {
 
 	private Client() throws IOException, InterruptedException {
 		client = new DatagramSocket();
+		System.out.println("Client\t: I have just connected to a network!");
 		
-		if (willRequestDHCP)
-			requestDHCP();
+		if (willRequestDHCP) {
+			boolean success = false;
+			while (!success) 
+				success = requestDHCP();
+		}
 		
 		clientPacketReceiver = new ClientPacketReceiver(client, this);
 		clientPacketReceiver.start();
@@ -48,12 +52,15 @@ public class Client {
 			System.out.println("Client\t: Client without an IP address has terminated.");
 	}
 
-	void requestDHCP() {
+	boolean requestDHCP() {
 		final String DHCP_DISCOVER = "DHCP DISCOVER";
 		final String DHCP_REQUEST = "DHCP REQUEST";
 		final String DHCP_ACK = "DHCP ACK";
 
 		try {
+			client.setSoTimeout(1000); // wait for DHCP replies for up to 1 second
+			
+			System.out.println("Client\t: Making a DHCP request...");
 			// send DHCP DISCOVER
 			String request = DHCP_DISCOVER;
 			byte[] sdata = request.getBytes();
@@ -101,9 +108,12 @@ public class Client {
 			if (response.equals(DHCP_ACK)) {
 				System.out.println("Client\t: DHCP Acknowledgment received!");
 			}
+			
+			client.setSoTimeout(0); // disable socket timeout
+			return true;
 
 		} catch (IOException | ClassNotFoundException e) {
-			e.printStackTrace();
+			return false; // if there is a problem with DHCP request, try again
 		}
 	}
 
