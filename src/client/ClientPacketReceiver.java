@@ -28,9 +28,9 @@ public class ClientPacketReceiver extends Thread {
 	}
 
 	public void run() {
+		try {
 //		while (true) {
-		for (int i = 0; i < 10; i++) {
-			try {
+			for (int i = 0; i < 20; i++) {
 				rdata = new byte[1000];
 				rpacket = new DatagramPacket(rdata, rdata.length);
 				client.receive(rpacket);
@@ -40,7 +40,7 @@ public class ClientPacketReceiver extends Thread {
 					System.out.print(response);
 					return;
 				}
-				
+
 				if (response.toLowerCase().contains("lease")) {
 					if (clientInstance.isRequestingDNS)
 						sdata = "Client\t: Server, please suspend your output".getBytes();
@@ -54,9 +54,9 @@ public class ClientPacketReceiver extends Thread {
 
 				if (!clientInstance.isRequestingDNS)
 					System.out.printf("%s", response);
-			} catch (IOException e) {
-				e.printStackTrace();
 			}
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 }
