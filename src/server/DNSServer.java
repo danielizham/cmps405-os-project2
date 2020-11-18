@@ -53,19 +53,21 @@ public class DNSServer extends Thread {
 			String domain_name = (new String(data, 0, data.length)).trim();
 
 			boolean found = false;
+			response = "DNS\t: " + domain_name + " corresponds to IP address(es) ";
 			for (int i = 0; i < DNSlist.length; i++) {
 				if (DNSlist[i][0].equals(domain_name)) {
-					response = response + "DNS\t: " + DNSlist[i][0] + " corresponds to IP address " + DNSlist[i][1] + "\n";
+					response = response + DNSlist[i][1] + ", ";
 					found = true;
 				}
 			}
+			response = response.substring(0, response.length() - 2) + "\n"; // remove the last comma & space
 
 			if (!found)
-				response = response + "DNS\t: Cannot resolve Name to IP ... \n";
+				response = "DNS\t: Cannot resolve Name to IP ... \n";
 
 		} else {
 			response = "DNS\t: ERROR! Your device has not been assigned an IP address by the DHCP.\n"
-					+ "\t  Please make a DHCP request before using the DNS service. Sorry for the inconvenience.";
+					+ "\t  Please make a DHCP request before using the DNS service. Sorry for the inconvenience.\n";
 		}
 
 		try {

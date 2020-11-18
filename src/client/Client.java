@@ -22,33 +22,45 @@ import util.Ports;
 public class Client {
 
 	private boolean willRequestDHCP = true;
-	private boolean willWaitForNewLeaseTime = true;
 	private DatagramSocket client;
 	private ClientPacketReceiver clientPacketReceiver;
 	private String myIP = "";
 	private int myPort;
-	static boolean isRequestingDNS = false;
+	boolean isRequestingDNS = false;
 
 	private Client() throws IOException, InterruptedException {
 		client = new DatagramSocket();
+		System.out.println("Client\t: I have just connected to a network!");
+		
 		if (willRequestDHCP) {
-			requestDHCP();
-			if (willWaitForNewLeaseTime) {
-				clientPacketReceiver = new ClientPacketReceiver(client);
-				clientPacketReceiver.start();
-			}
+			boolean success = false;
+			while (!success) 
+				success = requestDHCP();
 		}
+		
+		clientPacketReceiver = new ClientPacketReceiver(client, this);
+		clientPacketReceiver.start();
+		
 		requestDNS();
-		clientPacketReceiver.join();
-		System.out.printf("Client\t: Client with IP address %s at port %d has terminated.%n", myIP, myPort);
+		
+		if (clientPacketReceiver != null)
+			clientPacketReceiver.join();
+		
+		if (!myIP.equals(""))
+			System.out.printf("Client\t: Client with IP address %s at port %d has terminated.%n", myIP, myPort);
+		else
+			System.out.println("Client\t: Client without an IP address has terminated.");
 	}
 
-	private void requestDHCP() {
+	boolean requestDHCP() {
 		final String DHCP_DISCOVER = "DHCP DISCOVER";
 		final String DHCP_REQUEST = "DHCP REQUEST";
 		final String DHCP_ACK = "DHCP ACK";
 
 		try {
+			client.setSoTimeout(1000); // wait for DHCP replies for up to 1 second
+			
+			System.out.println("Client\t: Making a DHCP request...");
 			// send DHCP DISCOVER
 			String request = DHCP_DISCOVER;
 			byte[] sdata = request.getBytes();
@@ -75,7 +87,7 @@ public class Client {
 
 			myIP = dhcpPacket.getIp();
 			myPort = dhcpPacket.getPort();
-			
+
 			// send DHCP REQUEST and the chosen IP
 			request = DHCP_REQUEST;
 			sdata = request.getBytes();
@@ -96,9 +108,12 @@ public class Client {
 			if (response.equals(DHCP_ACK)) {
 				System.out.println("Client\t: DHCP Acknowledgment received!");
 			}
+			
+			client.setSoTimeout(0); // disable socket timeout
+			return true;
 
 		} catch (IOException | ClassNotFoundException e) {
-			e.printStackTrace();
+			return false; // if there is a problem with DHCP request, try again
 		}
 	}
 
